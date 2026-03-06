@@ -1,6 +1,6 @@
 id=CCC
 name=charging current controller
-version=v2.6
-versionCode=26
+version=v1.2
+versionCode=12
 author=zulfikar
 description=custom charging current speed | su -c charge

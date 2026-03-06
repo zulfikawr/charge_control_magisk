@@ -11,10 +11,28 @@ function write_file_lock() {
 }
 
 function read_charge() {
-  cat "/sys/class/power_supply/battery/constant_charge_current_max"
+  local nodes="/sys/class/power_supply/battery/constant_charge_current_max
+               /sys/class/power_supply/main/constant_charge_current_max
+               /sys/class/power_supply/battery/current_max
+               /sys/class/power_supply/main/current_max
+               /sys/class/power_supply/usb/current_max
+               /sys/class/power_supply/battery/input_current_limit
+               /sys/class/power_supply/battery/input_current_max
+               /sys/class/power_supply/usb/input_current_max"
+  for node in $nodes; do
+    if [[ -f "$node" ]]; then
+      local val=$(cat "$node")
+      if [[ "$val" =~ ^[0-9]+$ ]] && [[ "$val" -gt 0 ]]; then
+        echo "$val"
+        return
+      fi
+    fi
+  done
+  echo "0"
 }
 
 function write_charge() {
+  [[ -z "$1" ]] && return
   write_file_lock "$1" "/sys/class/power_supply/usb/current_max"
   write_file_lock "$1" "/sys/class/power_supply/usb/hw_current_max"
   write_file_lock "$1" "/sys/class/power_supply/usb/pd_current_max"
@@ -35,6 +53,7 @@ function write_charge() {
 
 function get_save_charge_current() {
   local current=$(read_charge)
+  [[ "$current" == "0" ]] && return
   resetprop -n "default.charge.current" "$current"
 }
 
@@ -52,7 +71,7 @@ write_file_lock "1" "/sys/kernel/fast_charge/failsafe"
 write_file_lock "1" "/sys/class/power_supply/battery/allow_hvdcp3"
 write_file_lock "1" "/sys/class/power_supply/usb/pd_allowed"
 write_file_lock "1" "/sys/class/power_supply/battery/subsystem/usb/pd_allowed"
-write_file_lock"'0" "/sys/class/power_supply/battery/input_current_limited"
+write_file_lock "0" "/sys/class/power_supply/battery/input_current_limited"
 write_file_lock "1" "/sys/class/power_supply/battery/input_current_settled"
 write_file_lock "0" "/sys/class/qcom-battery/restricted_charging"
 write_file_lock "100" "/sys/class/power_supply/bms/temp_cool"
